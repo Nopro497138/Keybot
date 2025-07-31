@@ -12,7 +12,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 DB_FILE = "keys.json"
 
-# === DATABASE ===
 def load_keys():
     if not os.path.exists(DB_FILE):
         with open(DB_FILE, "w") as f:
@@ -123,8 +122,18 @@ class UpdateKeyView(ui.View):
 
 # === /create_key ===
 @bot.tree.command(name="create_key", description="🔑 Create a key for roles")
-@app_commands.checks.has_role(discord.Object(id=ADMIN_ROLE_ID))
 async def create_key_command(interaction: discord.Interaction):
+    admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
+    if not admin_role or admin_role not in interaction.user.roles:
+        embed = discord.Embed(
+            title="⛔ Kein Zugriff!",
+            description=f"Du brauchst die Rolle {admin_role.mention if admin_role else f'`{ADMIN_ROLE_ID}`'} um diesen Befehl zu nutzen! 🚫🔐",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text="Frag einen Admin, wenn du denkst das ist ein Fehler 🛠️")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
     view = KeyCreationView()
     embed = discord.Embed(title="🔐 Key Creation Panel", color=0x00ffcc)
     embed.add_field(name="🆔 Key", value=f"`{view.generated_key}`", inline=False)
@@ -134,8 +143,17 @@ async def create_key_command(interaction: discord.Interaction):
 
 # === /update_key ===
 @bot.tree.command(name="update_key", description="♻️ Update an existing key")
-@app_commands.checks.has_role(discord.Object(id=ADMIN_ROLE_ID))
 async def update_key_command(interaction: discord.Interaction):
+    admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
+    if not admin_role or admin_role not in interaction.user.roles:
+        embed = discord.Embed(
+            title="⛔ Kein Zugriff!",
+            description=f"Du brauchst die Rolle {admin_role.mention if admin_role else f'`{ADMIN_ROLE_ID}`'} um diesen Befehl zu nutzen! ❌🛠️",
+            color=discord.Color.red()
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
     db = load_keys()
     if not db["keys"]:
         await interaction.response.send_message("❌ No keys available.", ephemeral=True)
@@ -160,7 +178,12 @@ async def load_roles_command(interaction: discord.Interaction):
             entry = db["keys"].get(key_val)
 
             if not entry:
-                await inner_interaction.response.send_message("❌ Invalid key!", ephemeral=True)
+                embed = discord.Embed(
+                    title="❌ Ungültiger Key!",
+                    description="Dieser Key existiert nicht oder wurde schon benutzt! 🔍",
+                    color=discord.Color.red()
+                )
+                await inner_interaction.response.send_message(embed=embed, ephemeral=True)
                 return
 
             roles_given = []
@@ -171,12 +194,16 @@ async def load_roles_command(interaction: discord.Interaction):
                         await interaction.user.add_roles(role)
                         roles_given.append(role.mention)
                     except Exception as e:
-                        print(f"❌ Fehler beim Rollen hinzufügen: {e}")
+                        print(f"Fehler beim Hinzufügen der Rolle {role_id}: {e}")
 
             del db["keys"][key_val]
             save_keys(db)
 
-            embed = discord.Embed(title="🎉 Success!", description=f"You received: {', '.join(roles_given)}", color=0x00ff00)
+            embed = discord.Embed(
+                title="🎉 Erfolgreich!",
+                description=f"Du hast folgende Rollen erhalten: {', '.join(roles_given)}",
+                color=discord.Color.green()
+            )
             await inner_interaction.response.send_message(embed=embed, ephemeral=True)
 
     await interaction.response.send_modal(KeyInputModal())
