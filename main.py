@@ -3,8 +3,8 @@ from discord import app_commands, ui
 from discord.ext import commands
 import random, string, json, os
 
-GUILD_ID = 1395849900612124784  # Deine Server-ID
-ADMIN_ROLE_ID = 1395902040827236382  # Die Rolle, die /create_key & /update_key nutzen darf
+GUILD_ID = 1395849900612124784
+ADMIN_ROLE_ID = 1395902040827236382
 
 intents = discord.Intents.default()
 intents.members = True
@@ -59,12 +59,11 @@ class KeyCreationView(ui.View):
 
     @ui.button(label="✅ Create Key", style=discord.ButtonStyle.success)
     async def create_key_button(self, interaction, button):
-        if not self.selected_user or not self.selected_roles:
-            await interaction.response.send_message("❌ Please assign both a user and roles!", ephemeral=True)
+        if not self.selected_roles:
+            await interaction.response.send_message("❌ Please assign at least one role!", ephemeral=True)
             return
         db = load_keys()
         db["keys"][self.generated_key] = {
-            "user_id": self.selected_user.id,
             "role_ids": [r.id for r in self.selected_roles]
         }
         save_keys(db)
@@ -99,14 +98,12 @@ class UpdateKeyView(ui.View):
         super().__init__(timeout=300)
         self.keys_dict = keys_dict
         self.selected_key = None
-        self.new_user = None
         self.new_roles = []
         self.message = None
 
     async def update_embed(self):
         embed = discord.Embed(title="🛠️ Key Update Panel", color=0x0099ff)
         embed.add_field(name="🔑 Selected Key", value=f"`{self.selected_key}`" if self.selected_key else "❌ Not selected", inline=False)
-        embed.add_field(name="👤 New User", value=f"{self.new_user.mention if self.new_user else '❌ Not selected'}", inline=True)
         embed.add_field(name="📛 New Roles", value=f"{', '.join([r.mention for r in self.new_roles]) if self.new_roles else '❌ Not selected'}", inline=True)
         await self.message.edit(embed=embed, view=self)
 
@@ -125,31 +122,24 @@ class UpdateKeyView(ui.View):
 
         await interaction.response.send_message("🔽 Select a key:", ephemeral=True, view=ui.View().add_item(KeyDropdown(self)))
 
-    @ui.button(label="👤 Select New User", style=discord.ButtonStyle.secondary)
-    async def select_user(self, interaction, button):
-        await interaction.response.send_message("Choose a user 👇", ephemeral=True, view=UserSelect(self), delete_after=30)
-
     @ui.button(label="📛 Select New Roles", style=discord.ButtonStyle.secondary)
     async def select_roles(self, interaction, button):
         await interaction.response.send_message("Choose roles 👇", ephemeral=True, view=RolesMultiSelect(self), delete_after=30)
 
     @ui.button(label="✅ Update Key", style=discord.ButtonStyle.success)
     async def update_key(self, interaction, button):
-        if not self.selected_key or not self.new_user or not self.new_roles:
+        if not self.selected_key or not self.new_roles:
             await interaction.response.send_message("⚠️ Fill out all fields!", ephemeral=True)
             return
 
         db = load_keys()
-        db["keys"][self.selected_key] = {
-            "user_id": self.new_user.id,
-            "role_ids": [r.id for r in self.new_roles]
-        }
+        db["keys"][self.selected_key]["role_ids"] = [r.id for r in self.new_roles]
         save_keys(db)
         await interaction.response.send_message("✅ Key updated!", ephemeral=True)
         await self.message.delete()
 
 # === /create_key ===
-@bot.tree.command(name="create_key", description="🔑 Create a key for a user and roles")
+@bot.tree.command(name="create_key", description="🔑 Create a key for roles")
 @app_commands.checks.has_role(discord.Object(id=ADMIN_ROLE_ID))
 async def create_key_command(interaction: discord.Interaction):
     view = KeyCreationView()
@@ -172,7 +162,6 @@ async def update_key_command(interaction: discord.Interaction):
     view = UpdateKeyView(db["keys"])
     embed = discord.Embed(title="🛠️ Key Update Panel", color=0x0099ff)
     embed.add_field(name="🔑 Selected Key", value="❌ Not selected", inline=False)
-    embed.add_field(name="👤 New User", value="❌ Not selected", inline=True)
     embed.add_field(name="📛 New Roles", value="❌ Not selected", inline=True)
     msg = await interaction.response.send_message(embed=embed, view=view)
     view.message = await msg.original_response()
@@ -190,9 +179,6 @@ async def load_roles_command(interaction: discord.Interaction):
 
             if not entry:
                 await inner_interaction.response.send_message("❌ Invalid key!", ephemeral=True)
-                return
-            if entry["user_id"] != interaction.user.id:
-                await inner_interaction.response.send_message("🚫 This key does not belong to you!", ephemeral=True)
                 return
 
             roles_given = []
