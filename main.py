@@ -32,14 +32,12 @@ class KeyCreationView(ui.View):
     def __init__(self):
         super().__init__(timeout=300)
         self.generated_key = generate_key()
-        self.selected_user = None
         self.selected_roles = []
         self.message = None
 
     async def update_embed(self):
         embed = discord.Embed(title="🔐 Key Creation Panel", color=0x00ffcc)
         embed.add_field(name="🆔 Key", value=f"`{self.generated_key}`", inline=False)
-        embed.add_field(name="👤 Assigned User", value=f"{self.selected_user.mention if self.selected_user else '❌ Not set'}", inline=True)
         embed.add_field(name="📛 Assigned Roles", value=f"{', '.join([r.mention for r in self.selected_roles]) if self.selected_roles else '❌ Not set'}", inline=True)
         await self.message.edit(embed=embed, view=self)
 
@@ -48,10 +46,6 @@ class KeyCreationView(ui.View):
         self.generated_key = generate_key()
         await self.update_embed()
         await interaction.response.defer()
-
-    @ui.button(label="👤 Assign User", style=discord.ButtonStyle.secondary)
-    async def assign_user_button(self, interaction, button):
-        await interaction.response.send_message("Select a user 👇", ephemeral=True, view=UserSelect(self), delete_after=30)
 
     @ui.button(label="📛 Assign Roles", style=discord.ButtonStyle.secondary)
     async def assign_roles_button(self, interaction, button):
@@ -69,17 +63,6 @@ class KeyCreationView(ui.View):
         save_keys(db)
         await interaction.response.send_message("✅ Key created successfully!", ephemeral=True)
         await self.message.delete()
-
-class UserSelect(ui.View):
-    def __init__(self, parent):
-        super().__init__()
-        self.parent = parent
-
-    @ui.select(cls=discord.ui.UserSelect)
-    async def select_user(self, interaction, select):
-        self.parent.selected_user = select.values[0]
-        await self.parent.update_embed()
-        await interaction.response.defer()
 
 class RolesMultiSelect(ui.View):
     def __init__(self, parent):
@@ -145,7 +128,6 @@ async def create_key_command(interaction: discord.Interaction):
     view = KeyCreationView()
     embed = discord.Embed(title="🔐 Key Creation Panel", color=0x00ffcc)
     embed.add_field(name="🆔 Key", value=f"`{view.generated_key}`", inline=False)
-    embed.add_field(name="👤 Assigned User", value="❌ Not set", inline=True)
     embed.add_field(name="📛 Assigned Roles", value="❌ Not set", inline=True)
     msg = await interaction.response.send_message(embed=embed, view=view)
     view.message = await msg.original_response()
@@ -199,7 +181,10 @@ async def load_roles_command(interaction: discord.Interaction):
 # === BOT READY ===
 @bot.event
 async def on_ready():
-    await bot.tree.sync(guild=discord.Object(id=GUILD_ID))
+    await bot.wait_until_ready()
+    guild = discord.Object(id=GUILD_ID)
+    bot.tree.copy_global_to(guild=guild)
+    await bot.tree.sync(guild=guild)
     print(f"🤖 Logged in as {bot.user}")
 
 bot.run(os.getenv("DISCORD_TOKEN"))
