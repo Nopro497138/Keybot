@@ -129,8 +129,8 @@ async def create_key_command(interaction: discord.Interaction):
     embed = discord.Embed(title="🔐 Key Creation Panel", color=0x00ffcc)
     embed.add_field(name="🆔 Key", value=f"`{view.generated_key}`", inline=False)
     embed.add_field(name="📛 Assigned Roles", value="❌ Not set", inline=True)
-    msg = await interaction.response.send_message(embed=embed, view=view)
-    view.message = await msg.original_response()
+    await interaction.response.send_message(embed=embed, view=view)
+    view.message = await interaction.original_response()
 
 # === /update_key ===
 @bot.tree.command(name="update_key", description="♻️ Update an existing key")
@@ -145,8 +145,8 @@ async def update_key_command(interaction: discord.Interaction):
     embed = discord.Embed(title="🛠️ Key Update Panel", color=0x0099ff)
     embed.add_field(name="🔑 Selected Key", value="❌ Not selected", inline=False)
     embed.add_field(name="📛 New Roles", value="❌ Not selected", inline=True)
-    msg = await interaction.response.send_message(embed=embed, view=view)
-    view.message = await msg.original_response()
+    await interaction.response.send_message(embed=embed, view=view)
+    view.message = await interaction.original_response()
 
 # === /load_roles ===
 @bot.tree.command(name="load_roles", description="🔓 Redeem a key to get your roles")
@@ -167,8 +167,11 @@ async def load_roles_command(interaction: discord.Interaction):
             for role_id in entry["role_ids"]:
                 role = interaction.guild.get_role(role_id)
                 if role:
-                    await interaction.user.add_roles(role)
-                    roles_given.append(role.mention)
+                    try:
+                        await interaction.user.add_roles(role)
+                        roles_given.append(role.mention)
+                    except Exception as e:
+                        print(f"❌ Fehler beim Rollen hinzufügen: {e}")
 
             del db["keys"][key_val]
             save_keys(db)
