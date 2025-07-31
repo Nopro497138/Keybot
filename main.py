@@ -181,8 +181,8 @@ async def load_roles_command(interaction: discord.Interaction):
 
             if not entry:
                 embed = discord.Embed(
-                    title="❌ Ungültiger Key!",
-                    description="Dieser Key existiert nicht oder wurde schon benutzt! 🔍",
+                    title="❌ Wrong Key!",
+                    description="This Key either doesnt exist or has already been used! 🔍",
                     color=discord.Color.red()
                 )
                 await inner_interaction.response.send_message(embed=embed, ephemeral=True)
@@ -202,8 +202,8 @@ async def load_roles_command(interaction: discord.Interaction):
             save_keys(db)
 
             embed = discord.Embed(
-                title="🎉 Erfolgreich!",
-                description=f"Du hast folgende Rollen erhalten: {', '.join(roles_given)}",
+                title="🎉 Succesfull!",
+                description=f"You got the following roles: {', '.join(roles_given)}",
                 color=discord.Color.green()
             )
             await inner_interaction.response.send_message(embed=embed, ephemeral=True)
