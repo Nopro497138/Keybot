@@ -3,9 +3,8 @@ from discord import app_commands, ui
 from discord.ext import commands
 import random, string, json, os
 
-TOKEN = "DEIN_BOT_TOKEN"
-GUILD_ID = 123456789012345678  # Deine Server-ID
-ADMIN_ROLE_ID = 112233445566778899  # Die Rolle, die /create_key & /update_key nutzen darf
+GUILD_ID = 1395849900612124784  # Deine Server-ID
+ADMIN_ROLE_ID = 1395902040827236382  # Die Rolle, die /create_key & /update_key nutzen darf
 
 intents = discord.Intents.default()
 intents.members = True
