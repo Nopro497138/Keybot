@@ -56,6 +56,8 @@ class KeyCreationView(ui.View):
             await interaction.response.send_message("❌ Please assign at least one role!", ephemeral=True)
             return
         db = load_keys()
+        if "keys" not in db:
+            db["keys"] = {}  # 🔧 Fix für KeyError
         db["keys"][self.generated_key] = {
             "role_ids": [r.id for r in self.selected_roles]
         }
