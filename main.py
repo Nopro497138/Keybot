@@ -3,8 +3,8 @@ from discord import app_commands, ui
 from discord.ext import commands
 import random, string, json, os
 
-GUILD_ID = 1395849900612124784
-ADMIN_ROLE_ID = 1395902040827236382
+GUILD_ID = 1406701855953784984
+ADMIN_ROLE_ID = 1414208081767825528
 
 intents = discord.Intents.default()
 intents.members = True
